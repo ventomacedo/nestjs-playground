@@ -8,7 +8,7 @@ export class SigninRequestDto {
     @IsNotEmpty({ message: 'O e-mail é obrigatório' })
     email!: string;
 
-    @ApiProperty({ example: '' })
+    @ApiProperty({ example: 'UmaSenhaBemSegura@2026' })
     @IsNotEmpty({ message: 'Password é obrigatório' })
     @MinLength(6, { message: 'O Password precisa ter no mínimo 6 caracteres' })
     @Matches(

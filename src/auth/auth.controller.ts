@@ -1,33 +1,33 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 
-import { RescuePasswordCodeResponseDto } from './dto/password-rescue-code-response.dto';
-import { MFAVerifyRequestDto } from './dto/mfa-verify-request.dto';
 import { SigninRequestDto } from './dto/signin-request.dto';
+import { TwoFactorAuthResponse } from './dto/two-factor-auth-response.dto';
+import { TwoFactorAuthRequest } from './dto/two-factor-auth-request.dto';
+import { TwoFactorAuthSyncResponse } from './dto/two-factor-auth-sync-response.dto';
+import { twoFactorAuthGuard } from './two-factor-auth.guard';
+
+type PreAuthRequest = Request & { user: { userId: string } };
 
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
-    
+
     @Post('signin')
     async signin(@Body() body: SigninRequestDto) {
         return await this.authService.login(body.email, body.password);
     }
 
-    @Post('request-password-rescue-code')
-    @HttpCode(HttpStatus.OK)
-    async requestPasswordRescueCode(): Promise<RescuePasswordCodeResponseDto> {
-        return await this.authService.genPasswordRescueCode();
+    @UseGuards(twoFactorAuthGuard)
+    @Post('verify-two-factor-authentication')
+    async verifyTwoFactorAuthentication(@Req() req: PreAuthRequest, @Body() body: TwoFactorAuthRequest): Promise<TwoFactorAuthResponse> {
+        return await this.authService.validateTwoFactorAuth(req.user.userId, body.code);
     }
 
-    @Post('set-new-password')
-    @HttpCode(HttpStatus.OK)
-    async setNewPassword(): Promise<boolean> {
-        return this.authService.setNewPassword();
-    }
-
-    @Post('mfa-verify')
-    mfaLogin(@Body() body: MFAVerifyRequestDto) {
-        return this.authService.verify2FACode(body.code);
+    @UseGuards(twoFactorAuthGuard)
+    @Post('sync-app-authenticator')
+    syncAppAuthenticator(@Req() req: PreAuthRequest): Promise<TwoFactorAuthSyncResponse> {
+        return this.authService.generateTwoFactorSecret(req.user.userId);
     }
 }
