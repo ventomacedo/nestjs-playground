@@ -10,7 +10,7 @@ O projeto ainda está em construção. O código, as escolhas técnicas e a docu
 
 - Revisar a organização modular do NestJS.
 - Praticar controllers, services, DTOs e injeção de dependências.
-- Implementar autenticação com JWT.
+- Implementar autenticação com JWT e autenticação de dois fatores (2FA/TOTP).
 - Trabalhar com validação de dados recebidos pela API.
 - Integrar uma aplicação NestJS com PostgreSQL.
 - Usar Drizzle ORM e Drizzle Kit para acesso a dados e migrações.
@@ -24,7 +24,9 @@ O projeto ainda está em construção. O código, as escolhas técnicas e a docu
 - PostgreSQL
 - Docker e Docker Compose
 - Drizzle ORM e Drizzle Kit
-- JSON Web Token (JWT)
+- JSON Web Token (JWT) e Passport
+- Autenticação de dois fatores (TOTP) com `otplib` e QR Code (`qrcode`)
+- Swagger para documentação da API
 - Jest e Supertest
 
 ## Estrutura atual
@@ -35,7 +37,11 @@ src/
 │   ├── dto/
 │   ├── auth.controller.ts
 │   ├── auth.module.ts
-│   └── auth.service.ts
+│   ├── auth.service.ts
+│   ├── jwt.guard.ts
+│   ├── jwt.stategy.ts
+│   ├── two-factor-auth.guard.ts
+│   └── two-factor-auth.stategy.ts
 ├── database/
 │   ├── schemas/
 │   ├── database.module.ts
@@ -63,6 +69,7 @@ yarn install
 Crie o arquivo `.env` na raiz do projeto. O arquivo `.env.example` pode ser usado como referência:
 
 ```env
+APP_NAME=EstudoNest
 DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/mydatabase
 JWT_SECRET=uma-chave-secreta-para-desenvolvimento
 ```
@@ -118,14 +125,15 @@ A aplicação é iniciada, por padrão, na porta `3000`. Essa porta pode ser alt
 
 ## Rotas atuais
 
-As rotas de autenticação usam o prefixo `/auth`:
+As rotas de autenticação usam o prefixo `/api/v1/auth`. O fluxo de login é feito em duas etapas: `signin` retorna um token temporário (`twoFactorAuthToken`), que deve ser enviado como Bearer token nas rotas de 2FA.
 
-| Método | Rota | Finalidade |
-| --- | --- | --- |
-| `POST` | `/auth/signin` | Login com e-mail e senha |
-| `POST` | `/auth/request-password-rescue-code` | Solicitação de código de recuperação |
-| `POST` | `/auth/set-new-password` | Definição de uma nova senha |
-| `POST` | `/auth/mfa-verify` | Verificação de código MFA |
+| Método | Rota | Autenticação | Finalidade |
+| --- | --- | --- | --- |
+| `POST` | `/auth/signin` | — | Login com e-mail e senha. Retorna `twoFactorAuthToken` e o próximo passo (`MFA_SYNC` ou `MFA_VALIDATE`) |
+| `POST` | `/auth/sync-app-authenticator` | Bearer `twoFactorAuthToken` | Gera segredo e QR Code para o usuário sincronizar o app authenticator (primeiro acesso) |
+| `POST` | `/auth/verify-two-factor-authentication` | Bearer `twoFactorAuthToken` | Valida o código TOTP e retorna o `accessToken` final |
+
+A documentação interativa (Swagger) fica disponível em `/docs` com a aplicação em execução.
 
 Esses fluxos ainda fazem parte do exercício e serão refinados conforme o projeto avançar.
 
