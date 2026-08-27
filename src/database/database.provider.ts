@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from 'pg';
-import * as schemas from './schemas/user.schema';
+import * as schemas from './schemas';
 
 export const DRIZZLE_PROVIDER = 'DRIZZLE_PROVIDER';
 export const databaseProviders = [
