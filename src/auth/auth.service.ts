@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt'
 
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { and, eq, isNull } from "drizzle-orm";
 import { JwtService } from '@nestjs/jwt';
@@ -89,10 +89,18 @@ export class AuthService {
     }
 
     private async updateUserSecret(userId: string, secret: string): Promise<void> {
-        await this.db.update(schemas.users).set({ 
-            twoFactorSecret: secret,
-            isFirstAccess: false
-        }).where(eq(schemas.users.id, userId));
+        try {
+            const result = await this.db.update(schemas.users).set({ 
+                twoFactorSecret: secret,
+                isFirstAccess: false
+            }).where(eq(schemas.users.id, userId));
+
+            if (result.rowCount === 0)
+                throw new NotFoundException(`Nenhum registro encontrado com o ID ${userId} ou nada foi alterado.`);
+
+        } catch (error) {
+            throw error;
+        }
     }
 
     private async findUserById(userId: string): Promise<schemas.TUser> {

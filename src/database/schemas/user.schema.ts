@@ -5,8 +5,9 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`uuidv7()`),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at"),
+  createdAt: timestamp("created_at", { mode: 'date' }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'date' }).$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { mode: 'date' }),
 
   // Novos campos para 2FA
   twoFactorSecret: varchar("two_factor_secret", { length: 255 }),

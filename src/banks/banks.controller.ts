@@ -1,6 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { JwthGuard } from 'src/auth/jwt.guard';
 import { BanksService } from './banks.service';
+import { CreateBankRequestDto } from './dto/create-bank-request.dto';
+import { TBanks, TNewBank } from 'src/database/schemas';
+import { CreateBanksResponseDto } from './dto/create-bank-response.dto';
+import { UpdateBanksResponseDto } from './dto/update-bank-response.dto';
 
 
 @Controller('banks')
@@ -22,19 +26,20 @@ export class BanksController {
 
     @UseGuards(JwthGuard)
     @Post('/')
-    async createBanks(@Body() body: any): Promise<any> {
-        // return this.banksService
+    async createBanks(@Body() body: CreateBankRequestDto): Promise<CreateBanksResponseDto> {
+        return this.banksService.createBank(body);
     }
 
     @UseGuards(JwthGuard)
-    @Put('/')
-    async updateBanks(@Body() body: any): Promise<any> {
-        // return this.banksService
+    @Put('/:id')
+    async updateBanks(@Param('id') id: string, @Body() body: CreateBankRequestDto): Promise<UpdateBanksResponseDto> {
+        return this.banksService.updateBank(body, id);
     }
 
     @UseGuards(JwthGuard)
-    @Delete('/')
-    async deleteBanks(@Body() body: any): Promise<any> {
-        // return this.banksService
+    @HttpCode(HttpStatus.ACCEPTED)
+    @Delete('/:id')
+    async deleteBanks(@Param('id') id: string): Promise<void> {
+        return this.banksService.deleteBank(id);
     }
 }

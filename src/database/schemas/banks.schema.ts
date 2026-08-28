@@ -9,9 +9,9 @@ export const banks = pgTable("banks", {
     ispb: varchar("ispb", { length: 10 }),
     compeCode: varchar("compe_code", { length: 100 }).notNull(),
 
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at"),
-    deletedAt: timestamp("deleted_at")
+    createdAt: timestamp("created_at", { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { mode: 'date' }).$onUpdate(() => new Date()),
+    deletedAt: timestamp("deleted_at", { mode: 'date' })
 });
 
 export type TBanks = typeof banks.$inferSelect;

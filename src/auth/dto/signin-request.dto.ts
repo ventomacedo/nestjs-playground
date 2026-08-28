@@ -1,4 +1,3 @@
-import { isEmail } from './../../../node_modules/@types/validator/index.d';
 import { ApiProperty } from "@nestjs/swagger";
 import { IsEmail, IsNotEmpty, Matches, MinLength } from "class-validator";
 
