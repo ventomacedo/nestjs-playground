@@ -42,10 +42,17 @@ src/
 │   ├── jwt.stategy.ts
 │   ├── two-factor-auth.guard.ts
 │   └── two-factor-auth.stategy.ts
+├── banks/
+│   ├── dto/
+│   ├── banks.controller.ts
+│   ├── banks.module.ts
+│   └── banks.service.ts
 ├── database/
 │   ├── schemas/
 │   ├── database.module.ts
 │   └── database.provider.ts
+├── utils/
+│   └── is-tax-id.decorator.ts
 ├── app.controller.ts
 ├── app.module.ts
 ├── app.service.ts
@@ -132,6 +139,16 @@ As rotas de autenticação usam o prefixo `/api/v1/auth`. O fluxo de login é fe
 | `POST` | `/auth/signin` | — | Login com e-mail e senha. Retorna `twoFactorAuthToken` e o próximo passo (`MFA_SYNC` ou `MFA_VALIDATE`) |
 | `POST` | `/auth/sync-app-authenticator` | Bearer `twoFactorAuthToken` | Gera segredo e QR Code para o usuário sincronizar o app authenticator (primeiro acesso) |
 | `POST` | `/auth/verify-two-factor-authentication` | Bearer `twoFactorAuthToken` | Valida o código TOTP e retorna o `accessToken` final |
+
+As rotas de instituições financeiras usam o prefixo `/api/v1/banks` e exigem `accessToken` (Bearer) obtido no fluxo de 2FA.
+
+| Método | Rota | Autenticação | Finalidade |
+| --- | --- | --- | --- |
+| `GET` | `/banks` | Bearer `accessToken` | Lista instituições financeiras |
+| `GET` | `/banks/:id` | Bearer `accessToken` | Busca instituição financeira por id |
+| `POST` | `/banks` | Bearer `accessToken` | Cria instituição financeira |
+| `PUT` | `/banks/:id` | Bearer `accessToken` | Atualiza instituição financeira |
+| `DELETE` | `/banks/:id` | Bearer `accessToken` | Remove instituição financeira |
 
 A documentação interativa (Swagger) fica disponível em `/docs` com a aplicação em execução.
 
