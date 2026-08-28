@@ -28,10 +28,14 @@ export class AuthService {
     async login(_email: string, _password: string): Promise<LoginResponseDto> {
         try {
             const INVALID_MESSAGE = "Usuário ou senha inválidos.";
-            const [user] = await this.db.select().from(schemas.users).where(and(
-                eq(schemas.users.email, _email),
-                isNull(schemas.users.deletedAt)
-            ));
+            const [user] = await this.db.select()
+                .from(schemas.users)
+                .where(
+                    and(
+                        eq(schemas.users.email, _email),
+                        isNull(schemas.users.deletedAt)
+                    )
+                );
 
             if (!user)
                 throw new UnauthorizedException(INVALID_MESSAGE)
