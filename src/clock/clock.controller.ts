@@ -1,4 +1,4 @@
-import { Controller, Sse, UseGuards } from '@nestjs/common';
+import { Controller, Header, Sse, UseGuards } from '@nestjs/common';
 import { finalize, interval, map, Observable } from 'rxjs';
 import { JwthGuard } from 'src/auth/jwt.guard';
 import { GetTimeResponseDto } from './dto/get-time-response.dto';
@@ -9,7 +9,10 @@ export class ClockController {
     constructor(private clockService: ClockService) {}
 
     @UseGuards(JwthGuard)
-    @Sse('/')
+    @Header('Content-Type', 'text/event-stream')
+    @Header('Cache-Control', 'no-cache')
+    @Header('Connection', 'keep-alive')
+    @Sse('/stream')
     public getTime(): Observable<{ data: GetTimeResponseDto }> {
         return interval(1000).pipe(
             map(() => ({
