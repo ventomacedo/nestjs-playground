@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
@@ -8,14 +8,16 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-full-auth') {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: process.env.JWT_SECRET as string
+            secretOrKey: process.env.JWT_SECRET as string,
         });
     }
 
-    async validate(payload: { sub: string, type: string }) {
+    async validate(payload: { sub: string; type: string }) {
         if (payload.type !== 'FULL_AUTH')
-            throw new UnauthorizedException('Acesso negado. Autenticação de dois fatores pendente.');
+            throw new UnauthorizedException(
+                'Acesso negado. Autenticação de dois fatores pendente.',
+            );
 
-        return { userId: payload.sub }
+        return { userId: payload.sub };
     }
 }

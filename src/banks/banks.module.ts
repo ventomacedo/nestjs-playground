@@ -6,7 +6,6 @@ import { Module } from '@nestjs/common';
     imports: [],
     controllers: [BanksController],
     providers: [BanksService],
-    exports: []
+    exports: [],
 })
-
 export class BanksModule {}

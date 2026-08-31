@@ -23,13 +23,21 @@ export class AuthController {
 
     @UseGuards(twoFactorAuthGuard)
     @Post('verify-two-factor-authentication')
-    async verifyTwoFactorAuthentication(@Req() req: PreAuthRequest, @Body() body: TwoFactorAuthRequest): Promise<TwoFactorAuthResponse> {
-        return await this.authService.validateTwoFactorAuth(req.user.userId, body.code);
+    async verifyTwoFactorAuthentication(
+        @Req() req: PreAuthRequest,
+        @Body() body: TwoFactorAuthRequest,
+    ): Promise<TwoFactorAuthResponse> {
+        return await this.authService.validateTwoFactorAuth(
+            req.user.userId,
+            body.code,
+        );
     }
 
     @UseGuards(twoFactorAuthGuard)
     @Post('sync-app-authenticator')
-    syncAppAuthenticator(@Req() req: PreAuthRequest): Promise<TwoFactorAuthSyncResponse> {
+    syncAppAuthenticator(
+        @Req() req: PreAuthRequest,
+    ): Promise<TwoFactorAuthSyncResponse> {
         return this.authService.generateTwoFactorSecret(req.user.userId);
     }
 }

@@ -1,12 +1,11 @@
-import { Module } from "@nestjs/common";
-import { ClockController } from "./clock.controller";
-import { ClockService } from "./clock.service";
+import { Module } from '@nestjs/common';
+import { ClockController } from './clock.controller';
+import { ClockService } from './clock.service';
 
 @Module({
     imports: [],
     controllers: [ClockController],
     providers: [ClockService],
-    exports: []
+    exports: [],
 })
-
 export class ClockModule {}

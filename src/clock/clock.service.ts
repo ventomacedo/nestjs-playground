@@ -1,9 +1,9 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ClockService {
     public getTime(): number {
-        return Date.now()
+        return Date.now();
     }
 
     public getTimezone(): string {

@@ -1,13 +1,18 @@
-import { registerDecorator, ValidationOptions, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
+import {
+    registerDecorator,
+    ValidationOptions,
+    ValidationArguments,
+    ValidatorConstraint,
+    ValidatorConstraintInterface,
+} from 'class-validator';
 
 @ValidatorConstraint({ name: 'isTaxId', async: false })
 export class IsTaxIdConstraint implements ValidatorConstraintInterface {
     validate(taxId: string, args: ValidationArguments) {
-        if (typeof taxId !== 'string') 
-            return false;
+        if (typeof taxId !== 'string') return false;
 
         const cleaned = taxId.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
-        
+
         if (!/^[0-9A-Z]{12}[0-9]{2}$/.test(cleaned)) return false;
         if (/^(\d)\1+$/.test(cleaned)) return false;
 
@@ -17,7 +22,7 @@ export class IsTaxIdConstraint implements ValidatorConstraintInterface {
 
         let weight = 5;
         let sum = 0;
-        
+
         for (let i = 0; i < 12; i++) {
             sum += getCharacterValue(cleaned[i]) * weight;
             weight = weight === 2 ? 9 : weight - 1;
@@ -46,7 +51,7 @@ export class IsTaxIdConstraint implements ValidatorConstraintInterface {
 }
 
 export function IsTaxId(validationOptions?: ValidationOptions) {
-    return function (object: Object, propertyName: string) {
+    return function (object: object, propertyName: string) {
         registerDecorator({
             target: object.constructor,
             propertyName: propertyName,

@@ -89,6 +89,9 @@
         "transform": {
             "^.+\\.(t|j)s$": "ts-jest"
         },
+        "transformIgnorePatterns": [
+            "node_modules/(?!(@nestjs/passport|otplib|@otplib|@scure|@noble)/)"
+        ],
         "collectCoverageFrom": [
             "**/*.(t|j)s"
         ],

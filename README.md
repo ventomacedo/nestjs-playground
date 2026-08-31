@@ -47,6 +47,11 @@ src/
 │   ├── banks.controller.ts
 │   ├── banks.module.ts
 │   └── banks.service.ts
+├── clock/
+│   ├── dto/
+│   ├── clock.controller.ts
+│   ├── clock.module.ts
+│   └── clock.service.ts
 ├── database/
 │   ├── schemas/
 │   ├── database.module.ts
@@ -150,6 +155,12 @@ As rotas de instituições financeiras usam o prefixo `/api/v1/banks` e exigem `
 | `PUT` | `/banks/:id` | Bearer `accessToken` | Atualiza instituição financeira |
 | `DELETE` | `/banks/:id` | Bearer `accessToken` | Remove instituição financeira |
 
+A rota de relógio usa o prefixo `/api/v1/clock` e exige `accessToken` (Bearer). É um endpoint SSE (Server-Sent Events) que emite a cada segundo.
+
+| Método | Rota | Autenticação | Finalidade |
+| --- | --- | --- | --- |
+| `GET` | `/clock` | Bearer `accessToken` | Stream SSE com timezone e timestamp atuais, emitido a cada segundo |
+
 A documentação interativa (Swagger) fica disponível em `/docs` com a aplicação em execução.
 
 Esses fluxos ainda fazem parte do exercício e serão refinados conforme o projeto avançar.
@@ -182,12 +193,14 @@ yarn test:cov
 yarn test:e2e
 ```
 
+Testes unitários cobrem controllers, services, guards e strategies dos módulos `auth`, `banks`, `clock` e `utils`. Testes end-to-end ainda não foram implementados.
+
 ## Próximos passos
 
 - Completar o fluxo de cadastro e autenticação.
 - Persistir usuários e códigos de recuperação no PostgreSQL.
 - Revisar o tratamento de senhas e tokens.
-- Adicionar testes unitários e end-to-end para os fluxos de autenticação.
+- Adicionar testes end-to-end para os fluxos de autenticação.
 - Evoluir o uso de migrações e validações de ambiente.
 - Estudar observabilidade, tratamento global de erros e documentação com Swagger.
 
