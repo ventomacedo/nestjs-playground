@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { BanksModule } from './banks/banks.module';
+import { ClockModule } from './clock/clock.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -13,7 +14,8 @@ import { BanksModule } from './banks/banks.module';
     }),
     DatabaseModule,
     AuthModule, 
-    BanksModule
+    BanksModule,
+    ClockModule
   ],
   controllers: [AppController],
   providers: [AppService],
