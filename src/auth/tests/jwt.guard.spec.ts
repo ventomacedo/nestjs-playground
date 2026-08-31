@@ -1,5 +1,5 @@
 import { AuthGuard } from '@nestjs/passport';
-import { JwthGuard } from './jwt.guard';
+import { JwthGuard } from '../jwt.guard';
 
 describe('JwthGuard', () => {
     it('estende o AuthGuard configurado com a estratégia jwt-full-auth', () => {

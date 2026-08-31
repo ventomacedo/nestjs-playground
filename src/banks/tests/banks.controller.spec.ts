@@ -1,6 +1,6 @@
-import { BanksController } from './banks.controller';
-import { BanksService } from './banks.service';
-import { CreateBankRequestDto } from './dto/create-bank-request.dto';
+import { BanksController } from '../banks.controller';
+import { BanksService } from '../banks.service';
+import { CreateBankRequestDto } from '../dto/create-bank-request.dto';
 
 describe('BanksController', () => {
     let banksController: BanksController;

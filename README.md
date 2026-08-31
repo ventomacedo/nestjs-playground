@@ -35,6 +35,7 @@ O projeto ainda está em construção. O código, as escolhas técnicas e a docu
 src/
 ├── auth/
 │   ├── dto/
+│   ├── tests/
 │   ├── auth.controller.ts
 │   ├── auth.module.ts
 │   ├── auth.service.ts
@@ -44,11 +45,13 @@ src/
 │   └── two-factor-auth.stategy.ts
 ├── banks/
 │   ├── dto/
+│   ├── tests/
 │   ├── banks.controller.ts
 │   ├── banks.module.ts
 │   └── banks.service.ts
 ├── clock/
 │   ├── dto/
+│   ├── tests/
 │   ├── clock.controller.ts
 │   ├── clock.module.ts
 │   └── clock.service.ts
@@ -57,6 +60,7 @@ src/
 │   ├── database.module.ts
 │   └── database.provider.ts
 ├── utils/
+│   ├── tests/
 │   └── is-tax-id.decorator.ts
 ├── app.controller.ts
 ├── app.module.ts

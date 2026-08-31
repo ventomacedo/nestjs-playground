@@ -1,4 +1,4 @@
-import { ClockService } from './clock.service';
+import { ClockService } from '../clock.service';
 
 describe('ClockService', () => {
     let clockService: ClockService;

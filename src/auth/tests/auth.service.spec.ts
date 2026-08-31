@@ -7,8 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as QRCode from 'qrcode';
 
-import { AuthService } from './auth.service';
-import { users } from '../database/schemas/user.schema';
+import { AuthService } from '../auth.service';
+import { users } from '../../database/schemas/user.schema';
 
 jest.mock('bcrypt', () => ({
     compare: jest.fn(),

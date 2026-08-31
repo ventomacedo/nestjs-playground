@@ -6,10 +6,10 @@ jest.mock('otplib', () => ({
     })),
 }));
 
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { SigninRequestDto } from './dto/signin-request.dto';
-import { TwoFactorAuthRequest } from './dto/two-factor-auth-request.dto';
+import { AuthController } from '../auth.controller';
+import { AuthService } from '../auth.service';
+import { SigninRequestDto } from '../dto/signin-request.dto';
+import { TwoFactorAuthRequest } from '../dto/two-factor-auth-request.dto';
 
 describe('AuthController', () => {
     let authController: AuthController;

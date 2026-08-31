@@ -1,7 +1,7 @@
 import { firstValueFrom } from 'rxjs';
 import { take } from 'rxjs/operators';
 
-import { ClockController } from './clock.controller';
+import { ClockController } from '../clock.controller';
 
 describe('ClockController', () => {
     let clockController: ClockController;

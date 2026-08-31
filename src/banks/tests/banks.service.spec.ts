@@ -1,9 +1,9 @@
 import { NotFoundException } from '@nestjs/common';
 
-import { BanksService } from './banks.service';
-import { banks } from '../database/schemas/banks.schema';
-import { CreateBankRequestDto } from './dto/create-bank-request.dto';
-import { UpdateBankRequestDto } from './dto/update-bank-request.dto';
+import { BanksService } from '../banks.service';
+import { banks } from '../../database/schemas/banks.schema';
+import { CreateBankRequestDto } from '../dto/create-bank-request.dto';
+import { UpdateBankRequestDto } from '../dto/update-bank-request.dto';
 
 describe('BanksService', () => {
     let banksService: BanksService;

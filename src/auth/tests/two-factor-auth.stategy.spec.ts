@@ -1,5 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { twoFactorAuthStrategy } from './two-factor-auth.stategy';
+import { twoFactorAuthStrategy } from '../two-factor-auth.stategy';
 
 describe('twoFactorAuthStrategy', () => {
     let strategy: twoFactorAuthStrategy;
