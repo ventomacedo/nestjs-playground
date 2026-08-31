@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class GetTimeResponseDto {
     @ApiProperty({
-        example: 'GTM-3',
+        example: 'America/Sao_Paulo',
         description: 'Timezone do horário enviado',
     })
     timezone!: string;
