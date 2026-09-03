@@ -1,0 +1,16 @@
+model User {
+    id                 String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    email              String    @unique @db.VarChar(255)
+    password           String    @db.VarChar(255)
+    createdAt          DateTime  @default(now()) @map("created_at")
+    updatedAt          DateTime? @updatedAt @map("updated_at")
+    deletedAt          DateTime? @map("deleted_at")
+    twoFactorSecret    String?   @map("two_factor_secret") @db.VarChar(255)
+    isTwoFactorEnabled Boolean   @default(true) @map("is_two_factor_enabled")
+    isFirstAccess      Boolean   @default(true) @map("is_first_access")
+
+    ledgers  Ledger[]
+    balances Balance[]
+
+    @@map("users")
+}

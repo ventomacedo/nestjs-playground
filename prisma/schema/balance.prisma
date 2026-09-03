@@ -1,0 +1,12 @@
+model Balance {
+    userId    String   @map("user_id") @db.Uuid
+    available Int      @map("available")
+    locked    Int      @map("locked")
+    version   Int      @default(1)
+    updateAt  DateTime @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@id([userId, version])
+    @@map("balance")
+}

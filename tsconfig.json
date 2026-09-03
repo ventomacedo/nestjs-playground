@@ -14,6 +14,14 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@auth": ["src/modules/auth/index.js"],
+      "@banks": ["src/modules/banks/index.js"],
+      "@clock": ["src/modules/clock/index.js"],
+      "@database": ["src/database/index.js"],
+      "@shared/decorators": ["src/shared/decorators/index.js"],
+      "@prisma": ["generated/prisma/client.js"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

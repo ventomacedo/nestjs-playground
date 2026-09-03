@@ -3,10 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { DatabaseModule } from './database/database.module';
-import { BanksModule } from './banks/banks.module';
-import { ClockModule } from './clock/clock.module';
+import { AuthModule } from '@auth';
+import { DatabaseModule } from '@database';
+import { BanksModule } from '@banks';
+import { ClockModule } from '@clock';
+import { BalanceModule } from './modules/budget/budget.module';
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -16,6 +17,7 @@ import { ClockModule } from './clock/clock.module';
         AuthModule,
         BanksModule,
         ClockModule,
+        BalanceModule,
     ],
     controllers: [AppController],
     providers: [AppService],

@@ -1,0 +1,13 @@
+model Bank {
+    id          String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+    taxId       String    @map("tax_id") @db.VarChar(14)
+    name        String    @db.VarChar(255)
+    fantasyName String    @map("fantasy_name") @db.VarChar(255)
+    ispb        String?   @db.VarChar(10)
+    compeCode   String    @map("compe_code") @db.VarChar(100)
+    createdAt   DateTime  @default(now()) @map("created_at")
+    updatedAt   DateTime? @updatedAt @map("updated_at")
+    deletedAt   DateTime? @map("deleted_at")
+
+    @@map("banks")
+}
