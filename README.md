@@ -8,12 +8,13 @@ O projeto ainda está em construção. O código, as escolhas técnicas e a docu
 
 ## Objetivos de estudo
 
-- Revisar a organização modular do NestJS.
+- Revisar a organização modular do NestJS, incluindo a evolução para um "monolito modular" (módulos de domínio isolados sob `src/modules`, infra compartilhada isolada em `src/database` e `src/shared`, fronteiras entre módulos via barrel `index.ts`).
 - Praticar controllers, services, DTOs e injeção de dependências.
 - Implementar autenticação com JWT e autenticação de dois fatores (2FA/TOTP).
 - Trabalhar com validação de dados recebidos pela API.
 - Integrar uma aplicação NestJS com PostgreSQL.
-- Usar Drizzle ORM e Drizzle Kit para acesso a dados e migrações.
+- Usar Prisma ORM (schema, migrations e Prisma Client) para acesso a dados.
+- Estudar idempotência em operações financeiras (módulo `budget`, com `Ledger`/`Balance` versionado e Redis como suporte) — em andamento.
 - Recuperar familiaridade com testes, configuração e execução de aplicações backend.
 
 ## Tecnologias
@@ -22,8 +23,9 @@ O projeto ainda está em construção. O código, as escolhas técnicas e a docu
 - TypeScript
 - NestJS
 - PostgreSQL
+- Redis (suporte ao estudo de idempotência)
 - Docker e Docker Compose
-- Drizzle ORM e Drizzle Kit
+- Prisma ORM (`@prisma/client`, driver adapter `@prisma/adapter-pg`)
 - JSON Web Token (JWT) e Passport
 - Autenticação de dois fatores (TOTP) com `otplib` e QR Code (`qrcode`)
 - Swagger para documentação da API
@@ -33,46 +35,68 @@ O projeto ainda está em construção. O código, as escolhas técnicas e a docu
 
 ```text
 src/
-├── auth/
-│   ├── dto/
-│   ├── tests/
-│   ├── auth.controller.ts
-│   ├── auth.module.ts
-│   ├── auth.service.ts
-│   ├── jwt.guard.ts
-│   ├── jwt.stategy.ts
-│   ├── two-factor-auth.guard.ts
-│   └── two-factor-auth.stategy.ts
-├── banks/
-│   ├── dto/
-│   ├── tests/
-│   ├── banks.controller.ts
-│   ├── banks.module.ts
-│   └── banks.service.ts
-├── clock/
-│   ├── dto/
-│   ├── tests/
-│   ├── clock.controller.ts
-│   ├── clock.module.ts
-│   └── clock.service.ts
+├── modules/
+│   ├── auth/
+│   │   ├── dto/
+│   │   ├── guards/
+│   │   ├── strategies/
+│   │   ├── tests/
+│   │   ├── auth.controller.ts
+│   │   ├── auth.module.ts
+│   │   ├── auth.service.ts
+│   │   ├── user.schema.ts
+│   │   └── index.ts
+│   ├── banks/
+│   │   ├── dto/
+│   │   ├── tests/
+│   │   ├── banks.controller.ts
+│   │   ├── banks.module.ts
+│   │   ├── banks.service.ts
+│   │   └── index.ts
+│   ├── clock/
+│   │   ├── dto/
+│   │   ├── tests/
+│   │   ├── clock.controller.ts
+│   │   ├── clock.module.ts
+│   │   ├── clock.service.ts
+│   │   └── index.ts
+│   └── budget/
+│       ├── budget.controller.ts
+│       ├── budget.interceptor.ts
+│       ├── budget.module.ts
+│       └── budget.service.ts
 ├── database/
-│   ├── schemas/
 │   ├── database.module.ts
-│   └── database.provider.ts
-├── utils/
-│   ├── tests/
-│   └── is-tax-id.decorator.ts
+│   ├── prisma.service.ts
+│   └── index.ts
+├── shared/
+│   └── decorators/
+│       ├── is-tax-id.decorator.ts
+│       ├── user.decorator.ts
+│       └── index.ts
+├── register-paths.ts
 ├── app.controller.ts
 ├── app.module.ts
 ├── app.service.ts
 └── main.ts
+
+prisma/
+├── schema/
+│   ├── schema.prisma   # generator + datasource
+│   ├── user.prisma
+│   ├── bank.prisma
+│   ├── ledger.prisma
+│   └── balance.prisma
+└── migrations/
 ```
+
+Cada módulo de domínio expõe só o que os outros precisam através do `index.ts` (barrel). Imports entre módulos usam aliases (`@auth`, `@banks`, `@clock`, `@database`, `@shared/decorators`, `@prisma`) configurados em `tsconfig.json`, no `moduleNameMapper` do Jest e em `src/register-paths.ts` (resolução em runtime pro build compilado).
 
 ## Pré-requisitos
 
 - Node.js instalado.
 - Yarn instalado.
-- Docker e Docker Compose instalados, caso queira executar o PostgreSQL em container.
+- Docker e Docker Compose instalados, caso queira executar PostgreSQL e Redis em container.
 
 ## Configuração
 
@@ -86,7 +110,7 @@ Crie o arquivo `.env` na raiz do projeto. O arquivo `.env.example` pode ser usad
 
 ```env
 APP_NAME=EstudoNest
-DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/mydatabase
+DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/postgres
 JWT_SECRET=uma-chave-secreta-para-desenvolvimento
 ```
 
@@ -94,23 +118,18 @@ O arquivo `.env` não deve ser versionado. Para ambientes reais, use uma chave J
 
 ## Banco de dados
 
-Suba o PostgreSQL com Docker Compose:
+Suba PostgreSQL e Redis com Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
-O container disponibiliza o banco na porta `5432`, com os seguintes dados locais:
+| Serviço | Porta | Configuração |
+| --- | --- | --- |
+| PostgreSQL | `5432` | usuário `myuser`, senha `mypassword`, banco `postgres` |
+| Redis | `6379` | sem autenticação (uso local de estudo) |
 
-| Configuração | Valor |
-| --- | --- |
-| Usuário | `myuser` |
-| Senha | `mypassword` |
-| Banco | `mydatabase` |
-| Host | `localhost` |
-| Porta | `5432` |
-
-Para interromper o container:
+Para interromper os containers:
 
 ```bash
 docker compose down
@@ -163,23 +182,40 @@ A rota de relógio usa o prefixo `/api/v1/clock` e exige `accessToken` (Bearer).
 
 | Método | Rota | Autenticação | Finalidade |
 | --- | --- | --- | --- |
-| `GET` | `/clock` | Bearer `accessToken` | Stream SSE com timezone e timestamp atuais, emitido a cada segundo |
+| `GET` | `/clock/stream` | Bearer `accessToken` | Stream SSE com timezone e timestamp atuais, emitido a cada segundo |
+
+O módulo `budget` (prefixo `/api/v1/budget`) é o experimento de idempotência em andamento — `Balance` é versionado (chave composta `userId` + `version`, sem coluna `id` própria) e `Ledger` registra os lançamentos. Só a leitura está implementada; escrita e o interceptor de idempotência ainda estão em construção.
+
+| Método | Rota | Autenticação | Finalidade |
+| --- | --- | --- | --- |
+| `GET` | `/budget/balance` | Bearer `accessToken` | Busca o saldo do usuário autenticado (⚠️ ainda quebrado — o lookup precisa ser adaptado pra chave composta `userId`+`version`) |
 
 A documentação interativa (Swagger) fica disponível em `/docs` com a aplicação em execução.
 
 Esses fluxos ainda fazem parte do exercício e serão refinados conforme o projeto avançar.
 
-## Migrações
+## Prisma
 
-Os comandos do Drizzle Kit estão definidos no `package.json`:
+O schema fica dividido por domínio em `prisma/schema/` (`user.prisma`, `bank.prisma`, `ledger.prisma`, `balance.prisma`), mais `schema.prisma` com o bloco `generator`/`datasource` — o Prisma CLI funde todos os arquivos da pasta automaticamente. Configuração de conexão e caminho do schema fica em `prisma7.config.ts`.
 
 ```bash
-# gerar uma migração a partir do schema
-yarn migration:generate
+# gerar o Prisma Client a partir do schema
+npx prisma generate
 
-# executar as migrações
-yarn migration:run
+# sincronizar o schema direto no banco de dev (sem gerar arquivo de migration)
+npx prisma db push
+
+# criar e aplicar uma migration versionada
+npx prisma migrate dev --name <nome>
+
+# aplicar migrations pendentes (ambientes não interativos)
+npx prisma migrate deploy
+
+# conferir estado das migrations
+npx prisma migrate status
 ```
+
+O histórico de migrations neste projeto está incompleto por escolha — parte da evolução do schema (tabela `banks`, campos de 2FA, `ledger`/`balance`) foi aplicada via `db push` durante os estudos, sem gerar migration correspondente. Isso é aceitável para um ambiente de estudo; não reflete uma prática recomendada para produção.
 
 ## Testes
 
@@ -197,16 +233,18 @@ yarn test:cov
 yarn test:e2e
 ```
 
-Testes unitários cobrem controllers, services, guards e strategies dos módulos `auth`, `banks`, `clock` e `utils`. Testes end-to-end ainda não foram implementados.
+Testes unitários cobrem controllers, services, guards e strategies dos módulos `auth`, `banks` e `clock`, além do decorator `is-tax-id`. O módulo `budget` ainda não tem testes (está em construção). Os specs de `auth.service` e `banks.service` também estão desatualizados desde a migração de Drizzle para Prisma e precisam ser reescritos. Testes end-to-end ainda não foram implementados.
 
 ## Próximos passos
 
-- Completar o fluxo de cadastro e autenticação.
+- Corrigir o lookup de `Balance` em `budget.service.ts` pra usar a chave composta `userId`+`version`.
+- Implementar o interceptor de idempotência do módulo `budget` (hoje vazio) usando Redis.
+- Reescrever os testes de `auth.service` e `banks.service` para o formato Prisma Client.
 - Persistir usuários e códigos de recuperação no PostgreSQL.
 - Revisar o tratamento de senhas e tokens.
 - Adicionar testes end-to-end para os fluxos de autenticação.
-- Evoluir o uso de migrações e validações de ambiente.
-- Estudar observabilidade, tratamento global de erros e documentação com Swagger.
+- Decidir se o histórico de migrations do Prisma será reconciliado (baseline + `migrate dev` daí em diante) ou se o projeto segue com `db push`.
+- Estudar observabilidade e tratamento global de erros.
 
 ## Observação
 
