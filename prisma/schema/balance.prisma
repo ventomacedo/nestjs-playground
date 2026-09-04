@@ -1,5 +1,5 @@
 model Balance {
-    userId    String   @map("user_id") @db.Uuid
+    userId    String   @id @map("user_id") @db.Uuid
     available Int      @map("available")
     locked    Int      @map("locked")
     version   Int      @default(1)
@@ -7,6 +7,5 @@ model Balance {
 
     user User @relation(fields: [userId], references: [id])
 
-    @@id([userId, version])
     @@map("balance")
 }

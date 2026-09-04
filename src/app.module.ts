@@ -8,6 +8,7 @@ import { DatabaseModule } from '@database';
 import { BanksModule } from '@banks';
 import { ClockModule } from '@clock';
 import { BalanceModule } from './modules/budget/budget.module';
+import { RedisModule } from './shared/redis/redis.module';
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -18,6 +19,7 @@ import { BalanceModule } from './modules/budget/budget.module';
         BanksModule,
         ClockModule,
         BalanceModule,
+        RedisModule,
     ],
     controllers: [AppController],
     providers: [AppService],

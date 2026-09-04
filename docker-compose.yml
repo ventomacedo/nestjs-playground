@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-    postgree: 
+    postgree:
         image: postgres:latest
         container_name: postgree
         environment:
@@ -8,10 +8,10 @@ services:
             POSTGRES_PASSWORD: mypassword
             POSTGRES_DB: mydatabase
         ports:
-            - "5432:5432"
+            - '5432:5432'
 
     redis:
         image: redis:7-alpine
-        container_name: motor-verbas-redis
+        container_name: redis
         ports:
-            - "6379:6379"
+            - '6379:6379'

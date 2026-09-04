@@ -14,7 +14,7 @@ O projeto ainda está em construção. O código, as escolhas técnicas e a docu
 - Trabalhar com validação de dados recebidos pela API.
 - Integrar uma aplicação NestJS com PostgreSQL.
 - Usar Prisma ORM (schema, migrations e Prisma Client) para acesso a dados.
-- Estudar idempotência em operações financeiras (módulo `budget`, com `Ledger`/`Balance` versionado e Redis como suporte) — em andamento.
+- Estudar idempotência em operações financeiras (módulo `budget`, com `Ledger`/`Balance` versionado e lock de idempotência via Redis) e experimentar `LISTEN`/`NOTIFY` do Postgres com SSE — em andamento.
 - Recuperar familiaridade com testes, configuração e execução de aplicações backend.
 
 ## Tecnologias
@@ -61,8 +61,10 @@ src/
 │   │   ├── clock.service.ts
 │   │   └── index.ts
 │   └── budget/
+│       ├── dto/
+│       ├── types/
 │       ├── budget.controller.ts
-│       ├── budget.interceptor.ts
+│       ├── budget.interceptor.ts   # interceptor de idempotência (Redis)
 │       ├── budget.module.ts
 │       └── budget.service.ts
 ├── database/
@@ -70,10 +72,13 @@ src/
 │   ├── prisma.service.ts
 │   └── index.ts
 ├── shared/
-│   └── decorators/
-│       ├── is-tax-id.decorator.ts
-│       ├── user.decorator.ts
-│       └── index.ts
+│   ├── decorators/
+│   │   ├── is-tax-id.decorator.ts
+│   │   ├── user.decorator.ts
+│   │   └── index.ts
+│   └── redis/
+│       ├── redis.module.ts
+│       └── redis.service.ts
 ├── register-paths.ts
 ├── app.controller.ts
 ├── app.module.ts
@@ -184,11 +189,16 @@ A rota de relógio usa o prefixo `/api/v1/clock` e exige `accessToken` (Bearer).
 | --- | --- | --- | --- |
 | `GET` | `/clock/stream` | Bearer `accessToken` | Stream SSE com timezone e timestamp atuais, emitido a cada segundo |
 
-O módulo `budget` (prefixo `/api/v1/budget`) é o experimento de idempotência em andamento — `Balance` é versionado (chave composta `userId` + `version`, sem coluna `id` própria) e `Ledger` registra os lançamentos. Só a leitura está implementada; escrita e o interceptor de idempotência ainda estão em construção.
+O módulo `budget` (prefixo `/api/v1/budget`) é o experimento de idempotência em operações financeiras — `Balance` é versionado (chave composta `userId` + `version`, sem coluna `id` própria) e `Ledger` registra cada lançamento (`RESERVED`/`REFUNDED`/`WITHDRAW`/`CREDITED`). As rotas de escrita (`reserve`, `cancel`, `confirm`) passam por `IdempotencyInterceptor`, que usa Redis como lock (`transactionId` do body vira chave, com TTL) pra impedir que a mesma requisição seja processada duas vezes.
 
 | Método | Rota | Autenticação | Finalidade |
 | --- | --- | --- | --- |
-| `GET` | `/budget/balance` | Bearer `accessToken` | Busca o saldo do usuário autenticado (⚠️ ainda quebrado — o lookup precisa ser adaptado pra chave composta `userId`+`version`) |
+| `GET` | `/budget/balance` | Bearer `accessToken` | Busca o saldo (versão mais recente) do usuário autenticado |
+| `GET` | `/budget/ledger` | Bearer `accessToken` | Lista o histórico de lançamentos do usuário autenticado |
+| `POST` | `/budget/reserve` | Bearer `accessToken` | Reserva um valor do saldo disponível (bloqueia), idempotente por `transactionId` |
+| `POST` | `/budget/cancel` | Bearer `accessToken` | Cancela uma reserva, devolve o valor ao saldo disponível |
+| `POST` | `/budget/confirm` | Bearer `accessToken` | Confirma (efetiva) uma reserva como saque |
+| `GET` | `/budget/balance/stream` | Bearer `accessToken` | SSE que emite quando a tabela `balance` muda, via trigger Postgres (`pg_notify`) + `LISTEN` numa conexão dedicada. **Endpoint de teste, não é um padrão válido pra sistema financeiro real** — serve só pra validar SSE + `NOTIFY`/`LISTEN` na prática; um fluxo real de saldo com idempotência não deveria expor o dado por push não confiável (sem garantia de entrega/replay), só pelas rotas acima. |
 
 A documentação interativa (Swagger) fica disponível em `/docs` com a aplicação em execução.
 
@@ -217,6 +227,8 @@ npx prisma migrate status
 
 O histórico de migrations neste projeto está incompleto por escolha — parte da evolução do schema (tabela `banks`, campos de 2FA, `ledger`/`balance`) foi aplicada via `db push` durante os estudos, sem gerar migration correspondente. Isso é aceitável para um ambiente de estudo; não reflete uma prática recomendada para produção.
 
+Uma migration (`balance_notification_trigger`) foge do padrão do Prisma Client: cria uma função `plpgsql` e uma trigger (`AFTER INSERT OR UPDATE ON balance`) que dispara `pg_notify('balance_updates', ...)` a cada mudança na tabela — é o que alimenta o endpoint de teste `/budget/balance/stream`. Trigger e função não têm representação no `schema.prisma` (o Prisma não modela isso declarativamente); o SQL foi escrito à mão dentro da pasta da migration.
+
 ## Testes
 
 ```bash
@@ -237,9 +249,10 @@ Testes unitários cobrem controllers, services, guards e strategies dos módulos
 
 ## Próximos passos
 
-- Corrigir o lookup de `Balance` em `budget.service.ts` pra usar a chave composta `userId`+`version`.
-- Implementar o interceptor de idempotência do módulo `budget` (hoje vazio) usando Redis.
-- Reescrever os testes de `auth.service` e `banks.service` para o formato Prisma Client.
+- Decidir o destino do endpoint de teste `/budget/balance/stream` (removê-lo do módulo `budget` ou isolá-lo claramente como exemplo, já que não é um padrão adequado pra esse domínio).
+- Corrigir `doneTransaction` em `budget.service.ts`: dentro do `$transaction(async (tx) => ...)`, o `update` do saldo usa `this.db.balance.update(...)` em vez de `tx.balance.update(...)` — quebra a atomicidade da transação.
+- Escrever testes pro módulo `budget` (service, controller, interceptor de idempotência) e pro `RedisService` — hoje não têm cobertura nenhuma.
+- Reescrever os testes de `auth.service` e `banks.service` para o formato Prisma Client (ainda no formato antigo do Drizzle).
 - Persistir usuários e códigos de recuperação no PostgreSQL.
 - Revisar o tratamento de senhas e tokens.
 - Adicionar testes end-to-end para os fluxos de autenticação.

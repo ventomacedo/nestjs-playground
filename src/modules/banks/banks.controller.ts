@@ -23,7 +23,7 @@ export class BanksController {
 
     @UseGuards(JwthGuard)
     @Get('/')
-    async getBanks(@Body() body: any): Promise<any> {
+    async getBanks(): Promise<any> {
         return await this.banksService.getBanks();
     }
 
