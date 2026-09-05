@@ -44,7 +44,6 @@ src/
 │   │   ├── auth.controller.ts
 │   │   ├── auth.module.ts
 │   │   ├── auth.service.ts
-│   │   ├── user.schema.ts
 │   │   └── index.ts
 │   ├── banks/
 │   │   ├── dto/
@@ -63,6 +62,7 @@ src/
 │   └── budget/
 │       ├── dto/
 │       ├── types/
+│       ├── tests/
 │       ├── budget.controller.ts
 │       ├── budget.interceptor.ts   # interceptor de idempotência (Redis)
 │       ├── budget.module.ts
@@ -92,7 +92,10 @@ prisma/
 │   ├── bank.prisma
 │   ├── ledger.prisma
 │   └── balance.prisma
-└── migrations/
+├── migrations/
+├── seeds/
+│   └── banks.seed.sql   # principais instituições financeiras do Brasil
+└── seed.ts   # runner do seed (`npx prisma db seed`)
 ```
 
 Cada módulo de domínio expõe só o que os outros precisam através do `index.ts` (barrel). Imports entre módulos usam aliases (`@auth`, `@banks`, `@clock`, `@database`, `@shared/decorators`, `@prisma`) configurados em `tsconfig.json`, no `moduleNameMapper` do Jest e em `src/register-paths.ts` (resolução em runtime pro build compilado).
@@ -229,6 +232,14 @@ O histórico de migrations neste projeto está incompleto por escolha — parte 
 
 Uma migration (`balance_notification_trigger`) foge do padrão do Prisma Client: cria uma função `plpgsql` e uma trigger (`AFTER INSERT OR UPDATE ON balance`) que dispara `pg_notify('balance_updates', ...)` a cada mudança na tabela — é o que alimenta o endpoint de teste `/budget/balance/stream`. Trigger e função não têm representação no `schema.prisma` (o Prisma não modela isso declarativamente); o SQL foi escrito à mão dentro da pasta da migration.
 
+### Seed
+
+```bash
+npx prisma db seed
+```
+
+Popula a tabela `banks` com as principais instituições financeiras do Brasil (`prisma/seeds/banks.seed.sql`, executado por `prisma/seed.ts` via `pg`). Idempotente (`WHERE NOT EXISTS` por `tax_id`, já que a tabela não tem constraint de unicidade nessa coluna) — pode rodar mais de uma vez sem duplicar. O comando também dispara automaticamente depois de `npx prisma migrate dev`. ISPB/CNPJ/COMPE dessa seed valem como dado de estudo; confira contra a lista oficial do Bacen antes de usar em produção.
+
 ## Testes
 
 ```bash
@@ -245,14 +256,13 @@ yarn test:cov
 yarn test:e2e
 ```
 
-Testes unitários cobrem controllers, services, guards e strategies dos módulos `auth`, `banks` e `clock`, além do decorator `is-tax-id`. O módulo `budget` ainda não tem testes (está em construção). Os specs de `auth.service` e `banks.service` também estão desatualizados desde a migração de Drizzle para Prisma e precisam ser reescritos. Testes end-to-end ainda não foram implementados.
+Testes unitários cobrem controllers, services, guards e strategies dos módulos `auth`, `banks` e `clock`, além do decorator `is-tax-id`. Todos os `it` estão em inglês; nomes de `describe` e mensagens de negócio (exceptions, DTOs) seguem em português. O módulo `budget` está ganhando testes aos poucos (cobertura parcial de `getBalance`/`getLeader`/`getNotificationStream`; ainda faltam `reserveBalance`, `cancelReserve`, `doneTransaction`, o controller e o `IdempotencyInterceptor`). Testes end-to-end ainda não foram implementados.
 
 ## Próximos passos
 
 - Decidir o destino do endpoint de teste `/budget/balance/stream` (removê-lo do módulo `budget` ou isolá-lo claramente como exemplo, já que não é um padrão adequado pra esse domínio).
 - Corrigir `doneTransaction` em `budget.service.ts`: dentro do `$transaction(async (tx) => ...)`, o `update` do saldo usa `this.db.balance.update(...)` em vez de `tx.balance.update(...)` — quebra a atomicidade da transação.
-- Escrever testes pro módulo `budget` (service, controller, interceptor de idempotência) e pro `RedisService` — hoje não têm cobertura nenhuma.
-- Reescrever os testes de `auth.service` e `banks.service` para o formato Prisma Client (ainda no formato antigo do Drizzle).
+- Terminar os testes do módulo `budget` (controller, `reserveBalance`, `cancelReserve`, `doneTransaction`, `IdempotencyInterceptor`) e do `RedisService` — hoje sem cobertura nenhuma.
 - Persistir usuários e códigos de recuperação no PostgreSQL.
 - Revisar o tratamento de senhas e tokens.
 - Adicionar testes end-to-end para os fluxos de autenticação.
