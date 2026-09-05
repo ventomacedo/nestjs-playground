@@ -120,6 +120,8 @@ Crie o arquivo `.env` na raiz do projeto. O arquivo `.env.example` pode ser usad
 APP_NAME=EstudoNest
 DATABASE_URL=postgresql://myuser:mypassword@localhost:5432/postgres
 JWT_SECRET=uma-chave-secreta-para-desenvolvimento
+REDIS_HOST=0.0.0.0
+REDIS_PORT=6379
 ```
 
 O arquivo `.env` não deve ser versionado. Para ambientes reais, use uma chave JWT forte e mantenha os segredos fora do código-fonte.
@@ -132,10 +134,10 @@ Suba PostgreSQL e Redis com Docker Compose:
 docker compose up -d
 ```
 
-| Serviço | Porta | Configuração |
-| --- | --- | --- |
+| Serviço    | Porta  | Configuração                                           |
+| ---------- | ------ | ------------------------------------------------------ |
 | PostgreSQL | `5432` | usuário `myuser`, senha `mypassword`, banco `postgres` |
-| Redis | `6379` | sem autenticação (uso local de estudo) |
+| Redis      | `6379` | sem autenticação (uso local de estudo)                 |
 
 Para interromper os containers:
 
@@ -170,38 +172,38 @@ A aplicação é iniciada, por padrão, na porta `3000`. Essa porta pode ser alt
 
 As rotas de autenticação usam o prefixo `/api/v1/auth`. O fluxo de login é feito em duas etapas: `signin` retorna um token temporário (`twoFactorAuthToken`), que deve ser enviado como Bearer token nas rotas de 2FA.
 
-| Método | Rota | Autenticação | Finalidade |
-| --- | --- | --- | --- |
-| `POST` | `/auth/signin` | — | Login com e-mail e senha. Retorna `twoFactorAuthToken` e o próximo passo (`MFA_SYNC` ou `MFA_VALIDATE`) |
-| `POST` | `/auth/sync-app-authenticator` | Bearer `twoFactorAuthToken` | Gera segredo e QR Code para o usuário sincronizar o app authenticator (primeiro acesso) |
-| `POST` | `/auth/verify-two-factor-authentication` | Bearer `twoFactorAuthToken` | Valida o código TOTP e retorna o `accessToken` final |
+| Método | Rota                                     | Autenticação                | Finalidade                                                                                              |
+| ------ | ---------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `POST` | `/auth/signin`                           | —                           | Login com e-mail e senha. Retorna `twoFactorAuthToken` e o próximo passo (`MFA_SYNC` ou `MFA_VALIDATE`) |
+| `POST` | `/auth/sync-app-authenticator`           | Bearer `twoFactorAuthToken` | Gera segredo e QR Code para o usuário sincronizar o app authenticator (primeiro acesso)                 |
+| `POST` | `/auth/verify-two-factor-authentication` | Bearer `twoFactorAuthToken` | Valida o código TOTP e retorna o `accessToken` final                                                    |
 
 As rotas de instituições financeiras usam o prefixo `/api/v1/banks` e exigem `accessToken` (Bearer) obtido no fluxo de 2FA.
 
-| Método | Rota | Autenticação | Finalidade |
-| --- | --- | --- | --- |
-| `GET` | `/banks` | Bearer `accessToken` | Lista instituições financeiras |
-| `GET` | `/banks/:id` | Bearer `accessToken` | Busca instituição financeira por id |
-| `POST` | `/banks` | Bearer `accessToken` | Cria instituição financeira |
-| `PUT` | `/banks/:id` | Bearer `accessToken` | Atualiza instituição financeira |
-| `DELETE` | `/banks/:id` | Bearer `accessToken` | Remove instituição financeira |
+| Método   | Rota         | Autenticação         | Finalidade                          |
+| -------- | ------------ | -------------------- | ----------------------------------- |
+| `GET`    | `/banks`     | Bearer `accessToken` | Lista instituições financeiras      |
+| `GET`    | `/banks/:id` | Bearer `accessToken` | Busca instituição financeira por id |
+| `POST`   | `/banks`     | Bearer `accessToken` | Cria instituição financeira         |
+| `PUT`    | `/banks/:id` | Bearer `accessToken` | Atualiza instituição financeira     |
+| `DELETE` | `/banks/:id` | Bearer `accessToken` | Remove instituição financeira       |
 
 A rota de relógio usa o prefixo `/api/v1/clock` e exige `accessToken` (Bearer). É um endpoint SSE (Server-Sent Events) que emite a cada segundo.
 
-| Método | Rota | Autenticação | Finalidade |
-| --- | --- | --- | --- |
-| `GET` | `/clock/stream` | Bearer `accessToken` | Stream SSE com timezone e timestamp atuais, emitido a cada segundo |
+| Método | Rota            | Autenticação         | Finalidade                                                         |
+| ------ | --------------- | -------------------- | ------------------------------------------------------------------ |
+| `GET`  | `/clock/stream` | Bearer `accessToken` | Stream SSE com timezone e timestamp atuais, emitido a cada segundo |
 
 O módulo `budget` (prefixo `/api/v1/budget`) é o experimento de idempotência em operações financeiras — `Balance` é versionado (chave composta `userId` + `version`, sem coluna `id` própria) e `Ledger` registra cada lançamento (`RESERVED`/`REFUNDED`/`WITHDRAW`/`CREDITED`). As rotas de escrita (`reserve`, `cancel`, `confirm`) passam por `IdempotencyInterceptor`, que usa Redis como lock (`transactionId` do body vira chave, com TTL) pra impedir que a mesma requisição seja processada duas vezes.
 
-| Método | Rota | Autenticação | Finalidade |
-| --- | --- | --- | --- |
-| `GET` | `/budget/balance` | Bearer `accessToken` | Busca o saldo (versão mais recente) do usuário autenticado |
-| `GET` | `/budget/ledger` | Bearer `accessToken` | Lista o histórico de lançamentos do usuário autenticado |
-| `POST` | `/budget/reserve` | Bearer `accessToken` | Reserva um valor do saldo disponível (bloqueia), idempotente por `transactionId` |
-| `POST` | `/budget/cancel` | Bearer `accessToken` | Cancela uma reserva, devolve o valor ao saldo disponível |
-| `POST` | `/budget/confirm` | Bearer `accessToken` | Confirma (efetiva) uma reserva como saque |
-| `GET` | `/budget/balance/stream` | Bearer `accessToken` | SSE que emite quando a tabela `balance` muda, via trigger Postgres (`pg_notify`) + `LISTEN` numa conexão dedicada. **Endpoint de teste, não é um padrão válido pra sistema financeiro real** — serve só pra validar SSE + `NOTIFY`/`LISTEN` na prática; um fluxo real de saldo com idempotência não deveria expor o dado por push não confiável (sem garantia de entrega/replay), só pelas rotas acima. |
+| Método | Rota                     | Autenticação         | Finalidade                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------ | ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/budget/balance`        | Bearer `accessToken` | Busca o saldo (versão mais recente) do usuário autenticado                                                                                                                                                                                                                                                                                                                                              |
+| `GET`  | `/budget/ledger`         | Bearer `accessToken` | Lista o histórico de lançamentos do usuário autenticado                                                                                                                                                                                                                                                                                                                                                 |
+| `POST` | `/budget/reserve`        | Bearer `accessToken` | Reserva um valor do saldo disponível (bloqueia), idempotente por `transactionId`                                                                                                                                                                                                                                                                                                                        |
+| `POST` | `/budget/cancel`         | Bearer `accessToken` | Cancela uma reserva, devolve o valor ao saldo disponível                                                                                                                                                                                                                                                                                                                                                |
+| `POST` | `/budget/confirm`        | Bearer `accessToken` | Confirma (efetiva) uma reserva como saque                                                                                                                                                                                                                                                                                                                                                               |
+| `GET`  | `/budget/balance/stream` | Bearer `accessToken` | SSE que emite quando a tabela `balance` muda, via trigger Postgres (`pg_notify`) + `LISTEN` numa conexão dedicada. **Endpoint de teste, não é um padrão válido pra sistema financeiro real** — serve só pra validar SSE + `NOTIFY`/`LISTEN` na prática; um fluxo real de saldo com idempotência não deveria expor o dado por push não confiável (sem garantia de entrega/replay), só pelas rotas acima. |
 
 A documentação interativa (Swagger) fica disponível em `/docs` com a aplicação em execução.
 
