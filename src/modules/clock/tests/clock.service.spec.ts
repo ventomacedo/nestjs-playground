@@ -12,7 +12,7 @@ describe('ClockService', () => {
     });
 
     describe('getTime', () => {
-        it('retorna o timestamp atual', () => {
+        it('returns the current timestamp', () => {
             jest.spyOn(Date, 'now').mockReturnValue(1788184216055);
 
             expect(clockService.getTime()).toBe(1788184216055);
@@ -20,7 +20,7 @@ describe('ClockService', () => {
     });
 
     describe('getTimezone', () => {
-        it('retorna a timezone resolvida pelo Intl', () => {
+        it('returns the timezone resolved by Intl', () => {
             const expected = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
             expect(clockService.getTimezone()).toBe(expected);

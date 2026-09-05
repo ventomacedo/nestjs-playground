@@ -31,7 +31,7 @@ describe('AuthController', () => {
     });
 
     describe('signin', () => {
-        it('delega para AuthService.login com email e senha do body', async () => {
+        it('delegates to AuthService.login with email and password from the body', async () => {
             const body: SigninRequestDto = {
                 email: 'user@example.com',
                 password: 'plain-password',
@@ -53,7 +53,7 @@ describe('AuthController', () => {
     });
 
     describe('verifyTwoFactorAuthentication', () => {
-        it('delega para AuthService.validateTwoFactorAuth com o userId do request e o código do body', async () => {
+        it('delegates to AuthService.validateTwoFactorAuth with the userId from the request and the code from the body', async () => {
             const req = { user: { userId: 'user-id' } } as never;
             const body: TwoFactorAuthRequest = { code: '123456' };
             const expected = { accessToken: 'full-access-token' };
@@ -73,7 +73,7 @@ describe('AuthController', () => {
     });
 
     describe('syncAppAuthenticator', () => {
-        it('delega para AuthService.generateTwoFactorSecret com o userId do request', async () => {
+        it('delegates to AuthService.generateTwoFactorSecret with the userId from the request', async () => {
             const req = { user: { userId: 'user-id' } } as never;
             const expected = {
                 secret: 'new-secret',

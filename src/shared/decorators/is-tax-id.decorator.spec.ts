@@ -8,49 +8,49 @@ describe('IsTaxIdConstraint', () => {
     });
 
     describe('validate', () => {
-        it('aceita um CNPJ numérico válido', () => {
+        it('accepts a valid numeric CNPJ', () => {
             expect(constraint.validate('11222333000181', {} as never)).toBe(
                 true,
             );
         });
 
-        it('aceita um CNPJ numérico válido formatado', () => {
+        it('accepts a valid formatted numeric CNPJ', () => {
             expect(constraint.validate('11.222.333/0001-81', {} as never)).toBe(
                 true,
             );
         });
 
-        it('aceita um CNPJ alfanumérico válido', () => {
+        it('accepts a valid alphanumeric CNPJ', () => {
             expect(constraint.validate('AB123456BBBB42', {} as never)).toBe(
                 true,
             );
         });
 
-        it('rejeita quando o valor não é uma string', () => {
+        it('rejects when the value is not a string', () => {
             expect(
                 constraint.validate(11222333000181 as never, {} as never),
             ).toBe(false);
         });
 
-        it('rejeita quando o comprimento é inválido', () => {
+        it('rejects when the length is invalid', () => {
             expect(constraint.validate('1122233300018', {} as never)).toBe(
                 false,
             );
         });
 
-        it('rejeita quando todos os caracteres são iguais', () => {
+        it('rejects when all characters are the same', () => {
             expect(constraint.validate('11111111111111', {} as never)).toBe(
                 false,
             );
         });
 
-        it('rejeita quando o primeiro dígito verificador está incorreto', () => {
+        it('rejects when the first check digit is incorrect', () => {
             expect(constraint.validate('11222333000191', {} as never)).toBe(
                 false,
             );
         });
 
-        it('rejeita quando o segundo dígito verificador está incorreto', () => {
+        it('rejects when the second check digit is incorrect', () => {
             expect(constraint.validate('11222333000180', {} as never)).toBe(
                 false,
             );
@@ -58,7 +58,7 @@ describe('IsTaxIdConstraint', () => {
     });
 
     describe('defaultMessage', () => {
-        it('retorna a mensagem padrão de CNPJ inválido', () => {
+        it('returns the default invalid CNPJ message', () => {
             expect(constraint.defaultMessage({} as never)).toBe(
                 'CNPJ inválido (aceita formato numérico tradicional ou alfanumérico).',
             );

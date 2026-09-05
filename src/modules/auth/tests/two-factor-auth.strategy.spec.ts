@@ -10,7 +10,7 @@ describe('twoFactorAuthStrategy', () => {
     });
 
     describe('validate', () => {
-        it('retorna o userId quando o token é do tipo PRE_AUTH', async () => {
+        it('returns the userId when the token is of type PRE_AUTH', async () => {
             const result = await strategy.validate({
                 sub: 'user-id',
                 type: 'PRE_AUTH',
@@ -19,7 +19,7 @@ describe('twoFactorAuthStrategy', () => {
             expect(result).toEqual({ userId: 'user-id' });
         });
 
-        it('lança UnauthorizedException quando o token não é PRE_AUTH', async () => {
+        it('throws UnauthorizedException when the token is not PRE_AUTH', async () => {
             await expect(
                 strategy.validate({ sub: 'user-id', type: 'FULL_AUTH' }),
             ).rejects.toBeInstanceOf(UnauthorizedException);

@@ -38,7 +38,7 @@ describe('BanksController', () => {
     });
 
     describe('getBanks', () => {
-        it('delega para BanksService.getBanks', async () => {
+        it('delegates to BanksService.getBanks', async () => {
             banksService.getBanks.mockResolvedValue([bank]);
 
             const result = (await banksController.getBanks(
@@ -51,7 +51,7 @@ describe('BanksController', () => {
     });
 
     describe('findBanksById', () => {
-        it('delega para BanksService.findBankById com o id da rota', async () => {
+        it('delegates to BanksService.findBankById with the id from the route', async () => {
             banksService.findBankById.mockResolvedValue([bank]);
 
             const result = (await banksController.findBanksById(
@@ -64,7 +64,7 @@ describe('BanksController', () => {
     });
 
     describe('createBanks', () => {
-        it('delega para BanksService.createBank com o body', async () => {
+        it('delegates to BanksService.createBank with the body', async () => {
             const body: CreateBankRequestDto = {
                 taxId: bank.taxId,
                 name: bank.name,
@@ -82,7 +82,7 @@ describe('BanksController', () => {
     });
 
     describe('updateBanks', () => {
-        it('delega para BanksService.updateBank com o body e o id da rota', async () => {
+        it('delegates to BanksService.updateBank with the body and the id from the route', async () => {
             const body: CreateBankRequestDto = {
                 taxId: bank.taxId,
                 name: bank.name,
@@ -100,7 +100,7 @@ describe('BanksController', () => {
     });
 
     describe('deleteBanks', () => {
-        it('delega para BanksService.deleteBank com o id da rota', async () => {
+        it('delegates to BanksService.deleteBank with the id from the route', async () => {
             banksService.deleteBank.mockResolvedValue(undefined);
 
             const result = await banksController.deleteBanks(bank.id);

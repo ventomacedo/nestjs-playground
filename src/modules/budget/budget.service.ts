@@ -13,7 +13,7 @@ import { Balance, Ledger } from '@prisma';
 import { ReserveBalanceRequestDto } from './dto/reserve-balance-request.dto';
 import { UpdateLedger } from './types';
 import { CancelReserveRequestDto } from './dto/cancel-reserve-request.dto';
-import { Client } from 'pg';
+import { Client, Notification } from 'pg';
 import { Observable, Subject } from 'rxjs';
 
 const NOTIFICATION = 'balance_notification';
@@ -37,12 +37,18 @@ export class BudgetService implements OnModuleInit, OnModuleDestroy {
             await this.notifyConnection.connect();
             this.notifyConnection.query('LISTEN balance_updates');
 
-            this.notifyConnection.on('notification', (message) => {
-                if (message.channel === 'balance_updates' && message.payload) {
-                    const data = JSON.parse(message.payload);
-                    this.balanceUpdates$.next(data);
-                }
-            });
+            this.notifyConnection.on(
+                'notification',
+                (message: Notification) => {
+                    if (
+                        message.channel === 'balance_updates' &&
+                        message.payload
+                    ) {
+                        const data = JSON.parse(message.payload);
+                        this.balanceUpdates$.next(data);
+                    }
+                },
+            );
         } catch (error) {
             throw error;
         }
@@ -52,10 +58,10 @@ export class BudgetService implements OnModuleInit, OnModuleDestroy {
         !!this.notifyConnection && (await this.notifyConnection.end());
     }
 
-    public async getBalance(id: string): Promise<Balance | null> {
+    public async getBalance(userId: string): Promise<Balance | null> {
         try {
             const balance = await this.db.balance.findFirst({
-                where: { userId: id },
+                where: { userId },
                 orderBy: { version: 'desc' },
             });
             return balance;

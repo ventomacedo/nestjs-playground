@@ -12,7 +12,7 @@ describe('AppController', () => {
     });
 
     describe('getHello', () => {
-        it('retorna o valor produzido pelo AppService', () => {
+        it('returns the value produced by AppService', () => {
             appService.getHello.mockReturnValue('Hello World!');
 
             const result = appController.getHello();

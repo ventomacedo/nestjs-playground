@@ -8,7 +8,6 @@ import * as bcrypt from 'bcrypt';
 import * as QRCode from 'qrcode';
 
 import { AuthService } from '../auth.service';
-import { users } from '../user.schema';
 
 jest.mock('bcrypt', () => ({
     compare: jest.fn(),
@@ -31,8 +30,11 @@ jest.mock('otplib', () => ({
 describe('AuthService', () => {
     let authService: AuthService;
     let db: {
-        select: jest.Mock;
-        update: jest.Mock;
+        user: {
+            findUnique: jest.Mock;
+            findFirst: jest.Mock;
+            update: jest.Mock;
+        };
     };
     let jwtService: {
         sign: jest.Mock;
@@ -58,8 +60,11 @@ describe('AuthService', () => {
         otpInstance.generateURI.mockReset();
         otpInstance.verify.mockReset();
         db = {
-            select: jest.fn(),
-            update: jest.fn(),
+            user: {
+                findUnique: jest.fn(),
+                findFirst: jest.fn(),
+                update: jest.fn(),
+            },
         };
         jwtService = {
             sign: jest.fn(),
@@ -75,12 +80,11 @@ describe('AuthService', () => {
     });
 
     describe('login', () => {
-        it('retorna authChallenge MFA_SYNC quando é o primeiro acesso do usuário', async () => {
-            const where = jest
-                .fn()
-                .mockResolvedValue([{ ...user, isFirstAccess: true }]);
-            const from = jest.fn().mockReturnValue({ where });
-            db.select.mockReturnValue({ from });
+        it("returns authChallenge MFA_SYNC on the user's first access", async () => {
+            db.user.findUnique.mockResolvedValue({
+                ...user,
+                isFirstAccess: true,
+            });
             compareMock.mockResolvedValue(true);
             jwtService.sign.mockReturnValue('pre-auth-token');
 
@@ -101,16 +105,15 @@ describe('AuthService', () => {
                 { sub: user.id, type: 'PRE_AUTH' },
                 { expiresIn: '5m' },
             );
-            expect(from).toHaveBeenCalledWith(users);
-            expect(where).toHaveBeenCalledWith(expect.anything());
+            expect(db.user.findUnique).toHaveBeenCalledWith({
+                where: { email: user.email },
+            });
         });
 
-        it('retorna authChallenge MFA_VALIDATE quando o usuário já sincronizou o 2FA', async () => {
-            const where = jest
-                .fn()
-                .mockResolvedValue([{ ...user, isFirstAccess: false }]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where }),
+        it('returns authChallenge MFA_VALIDATE when the user has already synced 2FA', async () => {
+            db.user.findUnique.mockResolvedValue({
+                ...user,
+                isFirstAccess: false,
             });
             compareMock.mockResolvedValue(true);
             jwtService.sign.mockReturnValue('pre-auth-token');
@@ -126,11 +129,8 @@ describe('AuthService', () => {
             });
         });
 
-        it('lança UnauthorizedException quando o usuário não existe', async () => {
-            const where = jest.fn().mockResolvedValue([]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where }),
-            });
+        it('throws UnauthorizedException when the user does not exist', async () => {
+            db.user.findUnique.mockResolvedValue(null);
 
             const loginPromise = authService.login(
                 'unknown@example.com',
@@ -147,11 +147,8 @@ describe('AuthService', () => {
             expect(jwtService.sign).not.toHaveBeenCalled();
         });
 
-        it('lança UnauthorizedException quando a senha é inválida', async () => {
-            const where = jest.fn().mockResolvedValue([user]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where }),
-            });
+        it('throws UnauthorizedException when the password is invalid', async () => {
+            db.user.findUnique.mockResolvedValue(user);
             compareMock.mockResolvedValue(false);
 
             await expect(
@@ -162,12 +159,10 @@ describe('AuthService', () => {
     });
 
     describe('generateTwoFactorSecret', () => {
-        it('lança BadRequestException quando o 2FA não está ativado para o usuário', async () => {
-            const where = jest
-                .fn()
-                .mockResolvedValue([{ ...user, isTwoFactorEnabled: false }]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where }),
+        it('throws BadRequestException when 2FA is not enabled for the user', async () => {
+            db.user.findFirst.mockResolvedValue({
+                ...user,
+                isTwoFactorEnabled: false,
             });
 
             await expect(
@@ -175,15 +170,9 @@ describe('AuthService', () => {
             ).rejects.toBeInstanceOf(BadRequestException);
         });
 
-        it('gera o segredo, atualiza o usuário e retorna o QR Code', async () => {
-            const selectWhere = jest.fn().mockResolvedValue([user]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where: selectWhere }),
-            });
-
-            const updateWhere = jest.fn().mockResolvedValue({ rowCount: 1 });
-            const updateSet = jest.fn().mockReturnValue({ where: updateWhere });
-            db.update.mockReturnValue({ set: updateSet });
+        it('generates the secret, updates the user and returns the QR Code', async () => {
+            db.user.findFirst.mockResolvedValue(user);
+            db.user.update.mockResolvedValue({ ...user, id: user.id });
 
             otpInstance.generateSecret.mockReturnValue('new-secret');
             otpInstance.generateURI.mockReturnValue(
@@ -198,9 +187,9 @@ describe('AuthService', () => {
                 label: user.email,
                 secret: 'new-secret',
             });
-            expect(updateSet).toHaveBeenCalledWith({
-                twoFactorSecret: 'new-secret',
-                isFirstAccess: false,
+            expect(db.user.update).toHaveBeenCalledWith({
+                where: { id: user.id },
+                data: { twoFactorSecret: 'new-secret', isFirstAccess: false },
             });
             expect(toDataURLMock).toHaveBeenCalledWith(
                 'otpauth://totp/App:user@example.com?secret=new-secret',
@@ -211,16 +200,9 @@ describe('AuthService', () => {
             });
         });
 
-        it('lança NotFoundException quando nenhum registro é atualizado', async () => {
-            const selectWhere = jest.fn().mockResolvedValue([user]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where: selectWhere }),
-            });
-
-            const updateWhere = jest.fn().mockResolvedValue({ rowCount: 0 });
-            db.update.mockReturnValue({
-                set: jest.fn().mockReturnValue({ where: updateWhere }),
-            });
+        it('throws NotFoundException when no record is updated', async () => {
+            db.user.findFirst.mockResolvedValue(user);
+            db.user.update.mockResolvedValue({ id: undefined });
 
             otpInstance.generateSecret.mockReturnValue('new-secret');
             otpInstance.generateURI.mockReturnValue('otpauth://totp/x');
@@ -232,12 +214,10 @@ describe('AuthService', () => {
     });
 
     describe('validateTwoFactorAuth', () => {
-        it('lança BadRequestException quando o 2FA não está ativado ou sem segredo', async () => {
-            const where = jest
-                .fn()
-                .mockResolvedValue([{ ...user, twoFactorSecret: null }]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where }),
+        it('throws BadRequestException when 2FA is not enabled or has no secret', async () => {
+            db.user.findFirst.mockResolvedValue({
+                ...user,
+                twoFactorSecret: null,
             });
 
             await expect(
@@ -245,11 +225,8 @@ describe('AuthService', () => {
             ).rejects.toBeInstanceOf(BadRequestException);
         });
 
-        it('lança UnauthorizedException quando o código TOTP é inválido', async () => {
-            const where = jest.fn().mockResolvedValue([user]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where }),
-            });
+        it('throws UnauthorizedException when the TOTP code is invalid', async () => {
+            db.user.findFirst.mockResolvedValue(user);
             otpInstance.verify.mockResolvedValue({ valid: false });
 
             await expect(
@@ -257,11 +234,8 @@ describe('AuthService', () => {
             ).rejects.toThrow('Código de authenticação inválido');
         });
 
-        it('retorna o accessToken quando o código TOTP é válido', async () => {
-            const where = jest.fn().mockResolvedValue([user]);
-            db.select.mockReturnValue({
-                from: jest.fn().mockReturnValue({ where }),
-            });
+        it('returns the accessToken when the TOTP code is valid', async () => {
+            db.user.findFirst.mockResolvedValue(user);
             otpInstance.verify.mockResolvedValue({ valid: true });
             jwtService.sign.mockReturnValue('full-access-token');
 

@@ -24,7 +24,7 @@ describe('ClockController', () => {
     });
 
     describe('getTime', () => {
-        it('emite timezone e timestamp a cada segundo', async () => {
+        it('emits timezone and timestamp every second', async () => {
             const resultPromise = firstValueFrom(
                 clockController.getTime().pipe(take(1)),
             );
